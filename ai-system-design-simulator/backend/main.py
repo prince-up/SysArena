@@ -1,16 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from redis.exceptions import RedisError
+from dotenv import load_dotenv
 
 from routes import interview, questions
 from services.session_store import ping_redis
 
 app = FastAPI()
 
+load_dotenv()
+
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["http://localhost:3000"],
-	allow_credentials=True,
+	allow_origins=["*"],
+	allow_credentials=False,
 	allow_methods=["*"],
 	allow_headers=["*"],
 )

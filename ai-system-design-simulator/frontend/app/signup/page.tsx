@@ -16,27 +16,32 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center gap-8 px-6">
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+    <div className="relative min-h-screen overflow-hidden bg-[#0b0f1a] text-slate-100">
+      <div className="pointer-events-none absolute -top-28 right-10 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle,rgba(59,91,255,0.35),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute bottom-10 left-0 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(255,107,74,0.35),transparent_65%)] blur-3xl" />
+      <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-between gap-10 px-6 py-16">
+        <div className="hidden flex-1 flex-col gap-6 md:flex">
+          <p className="text-xs uppercase tracking-[0.4em] text-slate-400">
             Signup
           </p>
-          <h1 className="text-3xl font-semibold">Create your account</h1>
-          <p className="text-slate-400">
-            Start practicing system design interviews in minutes.
+          <h1 className="font-display text-4xl text-white">
+            Start training like you are already in the interview.
+          </h1>
+          <p className="max-w-md text-slate-300">
+            Build your baseline, then sharpen your system design instincts with
+            targeted prompts.
           </p>
         </div>
         <form
-          className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-lg"
+          className="w-full max-w-md space-y-5 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_80px_-60px_rgba(255,107,74,0.7)]"
           onSubmit={handleSubmit}
         >
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300" htmlFor="name">
+            <label className="text-sm font-medium text-slate-200" htmlFor="name">
               Name
             </label>
             <input
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none focus:border-white/40"
               id="name"
               name="name"
               placeholder="Your name"
@@ -44,11 +49,11 @@ export default function SignupPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300" htmlFor="email">
+            <label className="text-sm font-medium text-slate-200" htmlFor="email">
               Email
             </label>
             <input
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none focus:border-white/40"
               id="email"
               name="email"
               placeholder="you@company.com"
@@ -57,13 +62,13 @@ export default function SignupPage() {
           </div>
           <div className="space-y-2">
             <label
-              className="text-sm font-medium text-slate-300"
+              className="text-sm font-medium text-slate-200"
               htmlFor="password"
             >
               Password
             </label>
             <input
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none focus:border-white/40"
               id="password"
               name="password"
               placeholder="Create a password"
@@ -71,7 +76,7 @@ export default function SignupPage() {
             />
           </div>
           <button
-            className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900"
+            className="w-full rounded-2xl bg-gradient-to-r from-[#3b5bff] to-[#5d7bff] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#3b5bff]/30"
             type="submit"
           >
             Create account

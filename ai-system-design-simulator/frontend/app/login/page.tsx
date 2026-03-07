@@ -17,25 +17,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center gap-8 px-6">
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Auth</p>
-          <h1 className="text-3xl font-semibold">Welcome back</h1>
-          <p className="text-slate-400">
-            Sign in to continue your system design practice.
+    <div className="relative min-h-screen overflow-hidden bg-[#0b0f1a] text-slate-100">
+      <div className="pointer-events-none absolute -top-32 left-10 h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(255,107,74,0.35),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(59,91,255,0.35),transparent_65%)] blur-3xl" />
+      <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-between gap-10 px-6 py-16">
+        <div className="hidden flex-1 flex-col gap-6 md:flex">
+          <p className="text-xs uppercase tracking-[0.4em] text-slate-400">
+            Login
+          </p>
+          <h1 className="font-display text-4xl text-white">
+            Welcome back. Ready for the next interview?
+          </h1>
+          <p className="max-w-md text-slate-300">
+            Continue your system design prep with real-world prompts and
+            instant AI feedback.
           </p>
         </div>
         <form
-          className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-lg"
+          className="w-full max-w-md space-y-5 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_80px_-60px_rgba(59,91,255,0.7)]"
           onSubmit={handleSubmit}
         >
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300" htmlFor="email">
+            <label className="text-sm font-medium text-slate-200" htmlFor="email">
               Email
             </label>
             <input
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none focus:border-white/40"
               id="email"
               name="email"
               placeholder="you@company.com"
@@ -44,13 +51,13 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <label
-              className="text-sm font-medium text-slate-300"
+              className="text-sm font-medium text-slate-200"
               htmlFor="password"
             >
               Password
             </label>
             <input
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none focus:border-white/40"
               id="password"
               name="password"
               placeholder="••••••••"
@@ -58,7 +65,7 @@ export default function LoginPage() {
             />
           </div>
           <button
-            className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900"
+            className="w-full rounded-2xl bg-gradient-to-r from-[#ff6b4a] to-[#ff4d2d] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#ff6b4a]/30"
             type="submit"
           >
             Sign in
