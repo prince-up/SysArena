@@ -7,29 +7,37 @@ type Message = {
   text: string;
 };
 
-const questionTitle = "Design WhatsApp";
+const defaultQuestionTitle = "Design WhatsApp";
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-const initialMessages: Message[] = [
+const buildSeedMessages = (title: string): Message[] => [
   {
     role: "ai",
-    text: "Design WhatsApp. Start with a high-level architecture.",
+    text: `${title}. Start with a high-level architecture.`,
   },
 ];
 
 export default function InterviewClient() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(
+    buildSeedMessages(defaultQuestionTitle)
+  );
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [questionTitle, setQuestionTitle] = useState(defaultQuestionTitle);
 
   useEffect(() => {
     if (sessionId) {
       return;
+    }
+
+    const storedTitle = localStorage.getItem("selectedQuestionTitle");
+    if (storedTitle) {
+      setQuestionTitle(storedTitle);
     }
 
     const existing = localStorage.getItem("interviewSessionId");
@@ -71,7 +79,7 @@ export default function InterviewClient() {
         }
 
         const data = (await response.json()) as Message[];
-        setMessages(data.length ? data : initialMessages);
+        setMessages(data.length ? data : buildSeedMessages(questionTitle));
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           setError("Unable to load chat history. Refresh to try again.");
@@ -83,7 +91,7 @@ export default function InterviewClient() {
 
     void loadHistory();
     return () => controller.abort();
-  }, [sessionId]);
+  }, [questionTitle, sessionId]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -163,7 +171,7 @@ export default function InterviewClient() {
 
       localStorage.removeItem("interviewSessionId");
       setSessionId(null);
-      setMessages(initialMessages);
+      setMessages(buildSeedMessages(questionTitle));
       setInput("");
     } catch (err) {
       const message =

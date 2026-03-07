@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from redis.exceptions import RedisError
 
-from routes import interview
+from routes import interview, questions
 from services.session_store import ping_redis
 
 app = FastAPI()
@@ -16,6 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(interview.router, prefix="/interview", tags=["interview"])
+app.include_router(questions.router, prefix="/questions", tags=["questions"])
 
 
 @app.get("/health/redis")
