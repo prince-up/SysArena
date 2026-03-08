@@ -1,4 +1,5 @@
 import os
+from collections.abc import Generator
 
 try:
     import google.generativeai as genai
@@ -63,6 +64,72 @@ def _fallback_reply(
 
     feedback, next_question = question_bank[min(turn_index, len(question_bank) - 1)]
     return f"Feedback: {feedback_prefix} {feedback} Next question: {next_question}"
+
+
+def score_answer(user_answer: str) -> dict[str, dict[str, str | int]]:
+    answer_lower = user_answer.lower()
+    scores: dict[str, dict[str, str | int]] = {}
+
+    def has_any(terms: tuple[str, ...]) -> bool:
+        return any(term in answer_lower for term in terms)
+
+    categories = {
+        "requirements": (
+            ("requirements", "sla", "scope", "latency", "throughput"),
+            "Call out core requirements and SLAs.",
+        ),
+        "api_design": (
+            ("api", "endpoint", "contract", "request", "response"),
+            "Define APIs and payloads clearly.",
+        ),
+        "data_model": (
+            ("schema", "table", "index", "partition", "shard"),
+            "Specify the data model and indexing.",
+        ),
+        "caching": (
+            ("cache", "redis", "memcached", "ttl"),
+            "Explain caching strategy and invalidation.",
+        ),
+        "reliability": (
+            ("replication", "failover", "dr", "backup", "retry"),
+            "Discuss resilience and failure modes.",
+        ),
+    }
+
+    for key, (terms, note) in categories.items():
+        present = has_any(terms)
+        score = 4 if present else 2
+        if len(user_answer.strip()) < 20:
+            score = 1
+        scores[key] = {
+            "score": score,
+            "notes": note,
+        }
+
+    return scores
+
+
+def suggestions_from_scores(
+    scores: dict[str, dict[str, str | int]]
+) -> list[str]:
+    suggestions = []
+    for key, detail in scores.items():
+        score = int(detail.get("score", 0))
+        if score >= 3:
+            continue
+        if key == "requirements":
+            suggestions.append("List core requirements, SLAs, and scale targets.")
+        elif key == "api_design":
+            suggestions.append("Define key APIs and payloads for reads/writes.")
+        elif key == "data_model":
+            suggestions.append("Sketch the data model, partitions, and indexes.")
+        elif key == "caching":
+            suggestions.append("Explain cache placement, TTLs, and invalidation.")
+        elif key == "reliability":
+            suggestions.append("Cover replication, failover, and disaster recovery.")
+    if not suggestions:
+        suggestions.append("Add deeper trade-offs and capacity estimates.")
+    return suggestions
 
 
 def _resolve_model_name(preferred: str) -> str:
@@ -136,3 +203,51 @@ def ask_next_question(
         )
     except Exception:
         return _fallback_reply(user_answer, system_question, history)
+
+
+def ask_next_question_stream(
+    system_question: str,
+    user_answer: str,
+    history: list[dict[str, str]] | None = None,
+) -> Generator[str, None, None]:
+    prompt = (
+        "You are a senior system design interviewer at Google."
+        "\n\n"
+        f"System design question: {system_question}\n"
+        f"Candidate answer: {user_answer}\n\n"
+        "Evaluate this system design answer and ask the next question. "
+        "Be direct about mistakes or missing pieces. "
+        "Provide brief feedback on scalability, database design, caching, and fault tolerance."
+    )
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    if not api_key or genai is None:
+        fallback = _fallback_reply(user_answer, system_question, history)
+        yield from _chunk_text(fallback)
+        return
+
+    genai.configure(api_key=api_key)
+    resolved_model = _resolve_model_name(model_name)
+    model = genai.GenerativeModel(resolved_model)
+    context_lines = []
+    for item in history or []:
+        role = item.get("role", "user")
+        text = item.get("text", "")
+        context_lines.append(f"{role.upper()}: {text}")
+
+    history_block = "\n".join(context_lines[-12:])
+    full_prompt = f"{prompt}\n\nConversation so far:\n{history_block}"
+    try:
+        response = model.generate_content(full_prompt, stream=True)
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
+    except Exception:
+        fallback = _fallback_reply(user_answer, system_question, history)
+        yield from _chunk_text(fallback)
+
+
+def _chunk_text(text: str, size: int = 40) -> Generator[str, None, None]:
+    for index in range(0, len(text), size):
+        yield text[index : index + size]
