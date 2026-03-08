@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Space_Grotesk } from "next/font/google";
 import TopNav from "./components/top-nav";
+import Providers from "./providers";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -28,10 +29,12 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${fraunces.variable} antialiased`}
       >
-        <div className="min-h-screen">
-          <TopNav />
-          <div className="pt-20">{children}</div>
-        </div>
+        <Providers>
+          <div className="min-h-screen">
+            <TopNav />
+            <div className="pt-20">{children}</div>
+          </div>
+        </Providers>
       </body>
     </html>
   );

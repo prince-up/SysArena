@@ -2,17 +2,50 @@
 
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("mockAuth", "true");
-      document.cookie = "mockAuth=true; path=/; max-age=2592000";
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    setError(null);
+    setIsSubmitting(true);
+
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as
+        | { detail?: string }
+        | null;
+      setError(data?.detail ?? "Unable to create account.");
+      setIsSubmitting(false);
+      return;
     }
-    router.push("/dashboard");
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.ok) {
+      router.push("/dashboard");
+    } else {
+      setError("Account created, but sign-in failed.");
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -78,9 +111,11 @@ export default function SignupPage() {
           <button
             className="w-full rounded-2xl bg-gradient-to-r from-[#3b5bff] to-[#5d7bff] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#3b5bff]/30"
             type="submit"
+            disabled={isSubmitting}
           >
-            Create account
+            {isSubmitting ? "Creating..." : "Create account"}
           </button>
+          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
         </form>
       </main>
     </div>

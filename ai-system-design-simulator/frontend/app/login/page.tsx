@@ -3,17 +3,34 @@
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("mockAuth", "true");
-      document.cookie = "mockAuth=true; path=/; max-age=2592000";
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    setError(null);
+    setIsSubmitting(true);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.ok) {
+      router.push("/dashboard");
+    } else {
+      setError("Invalid email or password.");
     }
-    router.push("/dashboard");
+    setIsSubmitting(false);
   };
 
   return (
@@ -67,9 +84,11 @@ export default function LoginPage() {
           <button
             className="w-full rounded-2xl bg-gradient-to-r from-[#ff6b4a] to-[#ff4d2d] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#ff6b4a]/30"
             type="submit"
+            disabled={isSubmitting}
           >
-            Sign in
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
+          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
           <p className="text-center text-sm text-slate-400">
             New here?{" "}
             <Link className="text-white underline" href="/signup">

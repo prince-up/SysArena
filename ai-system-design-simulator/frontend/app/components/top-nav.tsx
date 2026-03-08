@@ -1,34 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
 const links = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/interview", label: "Interview" },
   { href: "/results", label: "Results" },
+  { href: "/admin/questions", label: "Admin" },
 ];
 
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthed, setIsAuthed] = useState(false);
-
-  useEffect(() => {
-    const hasLocalAuth = localStorage.getItem("mockAuth") === "true";
-    const hasCookieAuth = document.cookie
-      .split(";")
-      .some((item) => item.trim().startsWith("mockAuth=true"));
-    setIsAuthed(hasLocalAuth || hasCookieAuth);
-  }, [pathname]);
+  const { data: session } = useSession();
+  const isAuthed = Boolean(session?.user?.email);
 
   const handleLogout = () => {
-    localStorage.removeItem("mockAuth");
     localStorage.removeItem("interviewSessionId");
-    document.cookie = "mockAuth=; Max-Age=0; path=/";
-    setIsAuthed(false);
+    void signOut({ redirect: false });
     router.push("/login");
   };
 

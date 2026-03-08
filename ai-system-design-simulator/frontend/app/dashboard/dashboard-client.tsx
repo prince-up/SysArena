@@ -8,6 +8,7 @@ type Question = {
   title: string;
   description: string;
   difficulty: string;
+  tags?: string[];
 };
 
 const apiBaseUrl = "/api";
@@ -91,6 +92,11 @@ export default function DashboardClient() {
                   </span>
                 </div>
                 <p className="mt-3 text-slate-300">{item.description}</p>
+                {item.tags && item.tags.length ? (
+                  <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-400">
+                    {item.tags.join(", ")}
+                  </p>
+                ) : null}
                 <button
                   className="mt-6 rounded-full bg-gradient-to-r from-[#ff6b4a] to-[#ff4d2d] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-[#ff6b4a]/30"
                   type="button"

@@ -37,13 +37,22 @@ npm run dev
 Create a `frontend/.env.local` file:
 ```
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=change-me
 ```
 
 ### Backend
 ```
 cd ai-system-design-simulator/backend
-pip install fastapi uvicorn sqlalchemy psycopg2 redis
+pip install -r requirements.txt
 uvicorn main:app --reload
+```
+
+Optional backend env vars:
+```
+ADMIN_EMAILS=admin@example.com,other@example.com
+GEMINI_API_KEY=your-key
+DATABASE_URL=postgresql://user:pass@localhost:5432/sysarena
 ```
 
 ### Redis
@@ -56,9 +65,17 @@ GET http://localhost:8000/health/redis
 
 ## API Endpoints
 - `POST /interview/chat`
+- `POST /interview/chat/stream`
 - `GET /interview/history/{session_id}`
 - `POST /interview/clear/{session_id}`
+- `GET /interview/sessions?user_id=...`
+- `GET /interview/sessions/{session_id}/scores`
+- `POST /interview/sessions/compare`
+- `GET /interview/export/{session_id}?format=md|pdf`
+- `POST /auth/register`
+- `POST /auth/login`
 - `GET /health/redis`
+- `GET /health/metrics`
 
 ## Screenshots
 - Landing page

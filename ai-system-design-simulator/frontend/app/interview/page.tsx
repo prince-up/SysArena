@@ -1,12 +1,12 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth";
 import InterviewClient from "./interview-client";
 
 export default async function InterviewPage() {
-  const cookieStore = await cookies();
-  const isAuthed = cookieStore.get("mockAuth")?.value === "true";
-
-  if (!isAuthed) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
     redirect("/login");
   }
 
