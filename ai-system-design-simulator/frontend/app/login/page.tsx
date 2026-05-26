@@ -18,19 +18,23 @@ export default function LoginPage() {
     const password = String(formData.get("password") ?? "");
     setError(null);
     setIsSubmitting(true);
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.ok) {
-      router.push("/dashboard");
-    } else {
-      setError("Invalid email or password.");
+      if (result?.ok) {
+        router.push("/dashboard");
+      } else {
+        setError("Invalid email or password.");
+      }
+    } catch {
+      setError("Unable to sign in right now. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -54,6 +58,11 @@ export default function LoginPage() {
           className="w-full max-w-md space-y-5 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_80px_-60px_rgba(59,91,255,0.7)]"
           onSubmit={handleSubmit}
         >
+          {error ? (
+            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              {error}
+            </div>
+          ) : null}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="email">
               Email
@@ -64,7 +73,12 @@ export default function LoginPage() {
               name="email"
               placeholder="you@company.com"
               type="email"
+              autoComplete="email"
+              required
             />
+            <p className="text-xs text-slate-500">
+              Use the email you registered with.
+            </p>
           </div>
           <div className="space-y-2">
             <label
@@ -79,6 +93,8 @@ export default function LoginPage() {
               name="password"
               placeholder="••••••••"
               type="password"
+              autoComplete="current-password"
+              required
             />
           </div>
           <button
@@ -88,7 +104,6 @@ export default function LoginPage() {
           >
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
           <p className="text-center text-sm text-slate-400">
             New here?{" "}
             <Link className="text-white underline" href="/signup">

@@ -6,3 +6,4 @@ redis
 python-dotenv
 passlib[bcrypt]
 reportlab
+groq

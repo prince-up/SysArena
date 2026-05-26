@@ -51,9 +51,16 @@ uvicorn main:app --reload
 Optional backend env vars:
 ```
 ADMIN_EMAILS=admin@example.com,other@example.com
+GROQ_API_KEY=your-key
+GROQ_BASE_URL=https://api.groq.com/openai/v1
+GROQ_MODEL=openai/gpt-oss-120b
 GEMINI_API_KEY=your-key
+OPENAI_API_KEY=your-key
+OPENAI_MODEL=gpt-4o-mini
 DATABASE_URL=postgresql://user:pass@localhost:5432/sysarena
 ```
+
+If you want the interviewer to use a real AI API, set `GROQ_API_KEY`, `GEMINI_API_KEY`, or `OPENAI_API_KEY`. Without one of those keys, the backend still runs, but it uses the built-in demo responses.
 
 ### Redis
 Run Redis locally (default: `redis://localhost:6379/0`).

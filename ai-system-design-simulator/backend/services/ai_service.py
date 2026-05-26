@@ -1,5 +1,12 @@
+import json
 import os
+import urllib.request
 from collections.abc import Generator
+
+try:
+    from groq import Groq
+except ImportError:  # pragma: no cover - optional dependency
+    Groq = None
 
 try:
     import google.generativeai as genai
@@ -64,6 +71,188 @@ def _fallback_reply(
 
     feedback, next_question = question_bank[min(turn_index, len(question_bank) - 1)]
     return f"Feedback: {feedback_prefix} {feedback} Next question: {next_question}"
+
+
+def _build_prompt(
+    system_question: str,
+    user_answer: str,
+    history: list[dict[str, str]] | None = None,
+) -> str:
+    prompt = (
+        "You are a senior system design interviewer at Google.\n\n"
+        f"System design question: {system_question}\n"
+        f"Candidate answer: {user_answer}\n\n"
+        "Evaluate this system design answer and ask the next question. "
+        "Be direct about mistakes or missing pieces. "
+        "Provide brief feedback on scalability, database design, caching, and fault tolerance."
+    )
+
+    context_lines = []
+    for item in history or []:
+        role = item.get("role", "user")
+        text = item.get("text", "")
+        context_lines.append(f"{role.upper()}: {text}")
+
+    history_block = "\n".join(context_lines[-12:])
+    return f"{prompt}\n\nConversation so far:\n{history_block}"
+
+
+def _compatible_messages(prompt: str) -> list[dict[str, str]]:
+    return [
+        {
+            "role": "system",
+            "content": (
+                "You are a senior system design interviewer at Google. "
+                "Be direct, technical, and concise."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ]
+
+
+def _compatible_api_key() -> str | None:
+    return os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+
+def _compatible_base_url() -> str:
+    return (
+        os.getenv("GROQ_BASE_URL")
+        or os.getenv("OPENAI_BASE_URL")
+        or "https://api.groq.com/openai/v1"
+    )
+
+
+def _compatible_model() -> str:
+    return (
+        os.getenv("GROQ_MODEL")
+        or os.getenv("OPENAI_MODEL")
+        or "openai/gpt-oss-120b"
+    )
+
+
+def _groq_client():
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY is not set")
+    if Groq is None:
+        raise ValueError("groq package is not installed")
+
+    base_url = os.getenv("GROQ_BASE_URL")
+    if base_url:
+        normalized = base_url.rstrip("/")
+        if normalized.endswith("/openai/v1"):
+            normalized = normalized[: -len("/openai/v1")]
+        return Groq(api_key=api_key, base_url=normalized)
+
+    return Groq(api_key=api_key)
+
+
+def _openai_headers(api_key: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+
+def _ask_compatible(prompt: str) -> str:
+    if os.getenv("GROQ_API_KEY"):
+        client = _groq_client()
+        response = client.chat.completions.create(
+            model=_compatible_model(),
+            messages=_compatible_messages(prompt),
+            temperature=0.4,
+        )
+        choices = getattr(response, "choices", None) or []
+        if not choices:
+            raise ValueError("Groq response did not include a choice")
+        message = getattr(choices[0], "message", None)
+        content = getattr(message, "content", "") if message is not None else ""
+        return str(content).strip()
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("No compatible API key is set")
+
+    payload = {
+        "model": _compatible_model(),
+        "messages": _compatible_messages(prompt),
+        "temperature": 0.4,
+    }
+    request = urllib.request.Request(
+        f"{_compatible_base_url()}/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers=_openai_headers(api_key),
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=60) as response:
+        data = json.loads(response.read().decode("utf-8"))
+
+    choices = data.get("choices") or []
+    if not choices:
+        raise ValueError("OpenAI response did not include a choice")
+    message = choices[0].get("message") or {}
+    return str(message.get("content", "")).strip()
+
+
+def _stream_compatible(prompt: str) -> Generator[str, None, None]:
+    if os.getenv("GROQ_API_KEY"):
+        client = _groq_client()
+        stream = client.chat.completions.create(
+            model=_compatible_model(),
+            messages=_compatible_messages(prompt),
+            temperature=0.4,
+            stream=True,
+        )
+        for chunk in stream:
+            choices = getattr(chunk, "choices", None) or []
+            if not choices:
+                continue
+            delta = getattr(choices[0], "delta", None)
+            content = getattr(delta, "content", None) if delta is not None else None
+            if content:
+                yield content
+        return
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("No compatible API key is set")
+
+    payload = {
+        "model": _compatible_model(),
+        "messages": _compatible_messages(prompt),
+        "temperature": 0.4,
+        "stream": True,
+    }
+    request = urllib.request.Request(
+        f"{_compatible_base_url()}/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers=_openai_headers(api_key),
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=60) as response:
+        for raw_line in response:
+            line = raw_line.decode("utf-8", errors="ignore").strip()
+            if not line.startswith("data: "):
+                continue
+
+            event = line[6:].strip()
+            if event == "[DONE]":
+                break
+
+            try:
+                payload = json.loads(event)
+            except json.JSONDecodeError:
+                continue
+
+            choices = payload.get("choices") or []
+            if not choices:
+                continue
+            delta = choices[0].get("delta") or {}
+            content = delta.get("content")
+            if content:
+                yield content
 
 
 def score_answer(user_answer: str) -> dict[str, dict[str, str | int]]:
@@ -171,14 +360,12 @@ def ask_next_question(
     user_answer: str,
     history: list[dict[str, str]] | None = None,
 ) -> str:
-    prompt = (
-        "You are a senior system design interviewer at Google.\n\n"
-        f"System design question: {system_question}\n"
-        f"Candidate answer: {user_answer}\n\n"
-        "Evaluate this system design answer and ask the next question. "
-        "Be direct about mistakes or missing pieces. "
-        "Provide brief feedback on scalability, database design, caching, and fault tolerance."
-    )
+    prompt = _build_prompt(system_question, user_answer, history)
+
+    try:
+        return _ask_compatible(prompt)
+    except Exception:
+        pass
 
     api_key = os.getenv("GEMINI_API_KEY")
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
@@ -188,16 +375,8 @@ def ask_next_question(
     genai.configure(api_key=api_key)
     resolved_model = _resolve_model_name(model_name)
     model = genai.GenerativeModel(resolved_model)
-    context_lines = []
-    for item in history or []:
-        role = item.get("role", "user")
-        text = item.get("text", "")
-        context_lines.append(f"{role.upper()}: {text}")
-
-    history_block = "\n".join(context_lines[-12:])
-    full_prompt = f"{prompt}\n\nConversation so far:\n{history_block}"
     try:
-        response = model.generate_content(full_prompt)
+        response = model.generate_content(prompt)
         return (response.text or "").strip() or _fallback_reply(
             user_answer, system_question, history
         )
@@ -210,15 +389,13 @@ def ask_next_question_stream(
     user_answer: str,
     history: list[dict[str, str]] | None = None,
 ) -> Generator[str, None, None]:
-    prompt = (
-        "You are a senior system design interviewer at Google."
-        "\n\n"
-        f"System design question: {system_question}\n"
-        f"Candidate answer: {user_answer}\n\n"
-        "Evaluate this system design answer and ask the next question. "
-        "Be direct about mistakes or missing pieces. "
-        "Provide brief feedback on scalability, database design, caching, and fault tolerance."
-    )
+    prompt = _build_prompt(system_question, user_answer, history)
+
+    try:
+        yield from _stream_compatible(prompt)
+        return
+    except Exception:
+        pass
 
     api_key = os.getenv("GEMINI_API_KEY")
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
@@ -230,16 +407,8 @@ def ask_next_question_stream(
     genai.configure(api_key=api_key)
     resolved_model = _resolve_model_name(model_name)
     model = genai.GenerativeModel(resolved_model)
-    context_lines = []
-    for item in history or []:
-        role = item.get("role", "user")
-        text = item.get("text", "")
-        context_lines.append(f"{role.upper()}: {text}")
-
-    history_block = "\n".join(context_lines[-12:])
-    full_prompt = f"{prompt}\n\nConversation so far:\n{history_block}"
     try:
-        response = model.generate_content(full_prompt, stream=True)
+        response = model.generate_content(prompt, stream=True)
         for chunk in response:
             if chunk.text:
                 yield chunk.text

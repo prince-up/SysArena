@@ -18,34 +18,37 @@ export default function SignupPage() {
     const password = String(formData.get("password") ?? "");
     setError(null);
     setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    const response = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as
+          | { detail?: string }
+          | null;
+        setError(data?.detail ?? "Unable to create account.");
+        return;
+      }
 
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as
-        | { detail?: string }
-        | null;
-      setError(data?.detail ?? "Unable to create account.");
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        router.push("/dashboard");
+      } else {
+        setError("Account created, but sign-in failed.");
+      }
+    } catch {
+      setError("Unable to sign up right now. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.ok) {
-      router.push("/dashboard");
-    } else {
-      setError("Account created, but sign-in failed.");
-    }
-    setIsSubmitting(false);
   };
 
   return (
@@ -69,6 +72,11 @@ export default function SignupPage() {
           className="w-full max-w-md space-y-5 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_80px_-60px_rgba(255,107,74,0.7)]"
           onSubmit={handleSubmit}
         >
+          {error ? (
+            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              {error}
+            </div>
+          ) : null}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="name">
               Name
@@ -79,7 +87,12 @@ export default function SignupPage() {
               name="name"
               placeholder="Your name"
               type="text"
+              autoComplete="name"
+              required
             />
+            <p className="text-xs text-slate-500">
+              This will be shown on your profile.
+            </p>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="email">
@@ -91,6 +104,8 @@ export default function SignupPage() {
               name="email"
               placeholder="you@company.com"
               type="email"
+              autoComplete="email"
+              required
             />
           </div>
           <div className="space-y-2">
@@ -106,7 +121,12 @@ export default function SignupPage() {
               name="password"
               placeholder="Create a password"
               type="password"
+              autoComplete="new-password"
+              required
             />
+            <p className="text-xs text-slate-500">
+              Use at least 8 characters.
+            </p>
           </div>
           <button
             className="w-full rounded-2xl bg-gradient-to-r from-[#3b5bff] to-[#5d7bff] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#3b5bff]/30"
@@ -115,7 +135,6 @@ export default function SignupPage() {
           >
             {isSubmitting ? "Creating..." : "Create account"}
           </button>
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
         </form>
       </main>
     </div>
