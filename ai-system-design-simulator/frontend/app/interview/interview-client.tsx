@@ -131,8 +131,9 @@ export default function InterviewClient() {
         return;
       }
 
-      if (payload.type === "user-message" && payload.text) {
-        setMessages((prev) => [...prev, { role: "user", text: payload.text }]);
+      if (payload.type === "user-message" && typeof payload.text === "string") {
+        const text = payload.text;
+        setMessages((prev) => [...prev, { role: "user", text }]);
         return;
       }
 
